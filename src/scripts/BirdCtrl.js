@@ -18,7 +18,7 @@ export default class BirdCtrl extends Laya.Script{
         }
     }
     onTriggerEnter(other){
-        if(other.name === "topBox")return;
+        if(other.owner.name === "topBox")return;
         this.owner.autoAnimation = "die";
         Laya.stage.event("GameOver")
         Laya.stage.isGameOver = true;

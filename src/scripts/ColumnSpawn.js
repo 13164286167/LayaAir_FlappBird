@@ -19,17 +19,27 @@ export default class ColumnSpawn extends Laya.Script{
         }
     }
     spawn(){
-        let column = this.columnPre.create();
-        let columnTop = this.columnPre.create();
+        if(Laya.stage.isGameOver)return;
+        let column = Laya.Pool.getItemByCreateFun("Column",this.createFun,this);
+        let columnTop = Laya.Pool.getItemByCreateFun("Column",this.createFun,this);
+       
+        column.isPassed = false;
+        column.rotation = 0;
+
         let columnY = this.getRandom(300,660)
         column.pos(1920,columnY)
-        parent.addChild(column);
         let delta = this.getRandom(245,348);
         let topY = columnY - delta;
         columnTop.rotation = 180;
         columnTop.pos(2176,topY)
-        parent.addChild(columnTop);
         columnTop.isPassed = true;
+        parent.addChild(column)
+        parent.addChild(columnTop)
+
+    }
+    createFun(){
+        let column = this.columnPre.create();
+        return column;
     }
     getRandom(min,max){
         return Math.random()*(max-min)+min;

@@ -8,4 +8,9 @@ export default class AutoMove extends Laya.Script{
             this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0}
         })
     }
+    onUpdate(){
+        if(Laya.stage.isGameOver){
+            this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0}
+        }
+    }
 }

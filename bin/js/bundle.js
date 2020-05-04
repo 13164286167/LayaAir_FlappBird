@@ -11,6 +11,11 @@
                 this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0};
             });
         }
+        onUpdate(){
+            if(Laya.stage.isGameOver){
+                this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0};
+            }
+        }
     }
 
     let width;
@@ -48,7 +53,7 @@
             }
         }
         onTriggerEnter(other){
-            if(other.name === "topBox")return;
+            if(other.owner.name === "topBox")return;
             this.owner.autoAnimation = "die";
             Laya.stage.event("GameOver");
             Laya.stage.isGameOver = true;
@@ -77,17 +82,27 @@
             }
         }
         spawn(){
-            let column = this.columnPre.create();
-            let columnTop = this.columnPre.create();
+            if(Laya.stage.isGameOver)return;
+            let column = Laya.Pool.getItemByCreateFun("Column",this.createFun,this);
+            let columnTop = Laya.Pool.getItemByCreateFun("Column",this.createFun,this);
+           
+            column.isPassed = false;
+            column.rotation = 0;
+
             let columnY = this.getRandom(300,660);
             column.pos(1920,columnY);
-            parent.addChild(column);
             let delta = this.getRandom(245,348);
             let topY = columnY - delta;
             columnTop.rotation = 180;
             columnTop.pos(2176,topY);
-            parent.addChild(columnTop);
             columnTop.isPassed = true;
+            parent.addChild(column);
+            parent.addChild(columnTop);
+
+        }
+        createFun(){
+            let column = this.columnPre.create();
+            return column;
         }
         getRandom(min,max){
             return Math.random()*(max-min)+min;
@@ -100,6 +115,11 @@
             super();
         }
         onUpdate(){
+            if(this.owner.x < -255){
+                this.owner.removeSelf();
+                Laya.Pool.recover("Column",this.owner);
+                console.log("recover");
+            }
             if(this.owner.x <= 75 && !this.owner.isPassed){
                 this.owner.isPassed = true;
                 console.log( ++gold);
