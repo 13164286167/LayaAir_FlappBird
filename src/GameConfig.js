@@ -3,6 +3,7 @@ import AutoMove from "./scripts/AutoMove"
 import RepeatingBg from "./scripts/RepeatingBg"
 import BirdCtrl from "./scripts/BirdCtrl"
 import ColumnSpawn from "./scripts/ColumnSpawn"
+import UICtrl from "./scripts/UICtrl"
 import PassColumn from "./scripts/PassColumn"
 
 export default class GameConfig {
@@ -13,16 +14,17 @@ export default class GameConfig {
 		reg("scripts/RepeatingBg.js",RepeatingBg);
 		reg("scripts/BirdCtrl.js",BirdCtrl);
 		reg("scripts/ColumnSpawn.js",ColumnSpawn);
+		reg("scripts/UICtrl.js",UICtrl);
 		reg("scripts/PassColumn.js",PassColumn);
     }
 }
 GameConfig.width = 1920;
 GameConfig.height = 1080;
-GameConfig.scaleMode ="fixedwidth";
-GameConfig.screenMode = "none";
-GameConfig.alignV = "top";
-GameConfig.alignH = "left";
-GameConfig.startScene = "game.scene";
+GameConfig.scaleMode ="showall";
+GameConfig.screenMode = "horizontal";
+GameConfig.alignV = "middle";
+GameConfig.alignH = "center";
+GameConfig.startScene = "Main.scene";
 GameConfig.sceneRoot = "";
 GameConfig.debug = false;
 GameConfig.stat = false;

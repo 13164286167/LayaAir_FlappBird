@@ -6,15 +6,21 @@
             super();
         }
         onAwake(){
-            this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:-3,y:0};
+            this.setLinearVelocity(-4,0);
             Laya.stage.on("GameOver",this,function(){
-                this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0};
+                this.setLinearVelocity(0,0);
+            });
+            Laya.stage.on("GameAgain",this,function(){
+                this.setLinearVelocity(-4,0);
             });
         }
         onUpdate(){
             if(Laya.stage.isGameOver){
-                this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:0};
+                this.setLinearVelocity(0,0);
             }
+        }
+        setLinearVelocity(x=0,y=0){
+            this.owner.getComponent(Laya.RigidBody).linearVelocity = {x,y};
         }
     }
 
@@ -40,12 +46,27 @@
         onAwake(){
             Laya.stage.on(Laya.Event.MOUSE_DOWN,this,this.mouseDown);
             // 
+            this.owner.getComponent(Laya.RigidBody).type = "static";
+            Laya.stage.on("GameAgain",this,this.gameAgain);
+            Laya.stage.on("GameStart",this,this.gameStart);
+        }
+        gameStart(){
+            this.owner.getComponent(Laya.RigidBody).type = "dynamic";
+            this.mouseDown();
+        }
+        gameAgain(){
+            Laya.stage.isGameOver = false;
+            this.owner.autoAnimation = "idle";
+            this.owner.pos(300,402);
+            this.owner.rotation = 0;
+            this.mouseDown();
         }
         mouseDown(){
-            if(Laya.stage.isGameOver)return;
+            if(Laya.stage.isGameOver || !Laya.stage.isStart)return;
             this.owner.getComponent(Laya.RigidBody).linearVelocity = {x:0,y:-10};
             this.owner.autoAnimation = "fly";
             this.owner.loop = false;
+            Laya.SoundManager.playSound("audio/fly.mp3");
         }
         onUpdate(){
             if(!this.owner.isPlaying){
@@ -53,16 +74,18 @@
             }
         }
         onTriggerEnter(other){
-            if(other.owner.name === "topBox")return;
+            if(other.owner.name === "topBox" || Laya.stage.isGameOver)return;
             this.owner.autoAnimation = "die";
-            Laya.stage.event("GameOver");
+            Laya.SoundManager.playSound("audio/hit.mp3");
             Laya.stage.isGameOver = true;
+            Laya.stage.event("GameOver");
         }
 
     }
 
     let timer = 0,ranTime = 0;
     let parent ;
+    let children = [];
     class ColumnSpawn extends Laya.Script{
         constructor(){
             super();
@@ -71,13 +94,22 @@
         }
         onAwake(){
             parent = this.owner.getChildByName("columnParent");
+            Laya.stage.on("GameAgain",this,this.gameAgain);
+        }
+        gameAgain(){
+            timer = 0;
+            ranTime = 0;
+            let childrenArr = parent._children.concat();
+            childrenArr.forEach((child,i) => {
+                child.removeSelf();
+            });
         }
         onUpdate(){
-            if(Laya.stage.isGameOver)return;
+            if(Laya.stage.isGameOver || !Laya.stage.isStart)return;
             timer+=Laya.timer.delta;
             if(timer > ranTime){
                 timer = 0;
-                ranTime = this.getRandom(3000,4500);
+                ranTime = this.getRandom(2000,3500);
                 this.spawn();
             }
         }
@@ -91,10 +123,10 @@
 
             let columnY = this.getRandom(300,660);
             column.pos(1920,columnY);
-            let delta = this.getRandom(245,348);
+            let delta = this.getRandom(245,345);
             let topY = columnY - delta;
             columnTop.rotation = 180;
-            columnTop.pos(2176,topY);
+            columnTop.pos(2176,topY > 20 ? topY : 20);
             columnTop.isPassed = true;
             parent.addChild(column);
             parent.addChild(columnTop);
@@ -109,20 +141,109 @@
         }
     }
 
-    let gold = 0;
+    class UICtrl extends Laya.Script{
+        constructor(){
+            super();
+            /** @prop {name:blackBg, tips:"提示文本", type:Node, default:null}*/
+            this.blackBg = null;
+            this.scoreText = null;
+            this._score = 0;
+        }
+        get score(){
+            return this._score;
+        }
+        set score(newVal){
+            newVal = parseInt(newVal);
+            this._score = newVal;
+            this.scoreText.text = "score: " + newVal;
+            
+        }
+        onAwake(){
+            this.scoreText = this.owner.getChildByName("score");
+            this.blackBg.visible = false;
+            Laya.stage.on("AddScore",this,function(){
+                this.score ++;
+            });
+            Laya.stage.on("GameOver",this,this.gameOver);
+            this.init();
+        }
+        init(){
+            this.rankPannelInit();
+            let btnAgain = this.btnAgain = this.blackBg.getChildByName("btn_again");
+            Laya.stage.isStart = false;
+            this.scoreText.alpha = 0;
+            btnAgain.on(Laya.Event.CLICK,this,this.btnAgainClick);
+            let startBtn = this.owner.getChildByName("btn_start");
+            startBtn.on(Laya.Event.CLICK,this,this.startClick);
+        }
+
+        rankPannelInit(){
+            let showRank = this.showRank = this.blackBg.getChildByName("btn_rank");
+            let rankPannel = this.rankPannel = this.owner.getChildByName("rankPannel");
+            this.endScore = this.blackBg.getChildByName("endScore");
+            this.rankText = rankPannel.getChildByName("rankText");
+            rankPannel.visible = false;
+            showRank.on(Laya.Event.CLICK,this,this.rankCLick);
+        }
+        rankCLick(){
+            this.rankPannel.visible = true;
+            this.rankPannel.show(true,true);
+            let rankInfo = Laya.LocalStorage.getItem("rankInfo");
+            if(!rankInfo){
+                rankInfo = [0,0,0];
+            }else{
+                rankInfo = JSON.parse(rankInfo);
+            }
+            rankInfo.push(this.score);
+            rankInfo.forEach((rank,index) => {
+                rankInfo[index] = parseInt(rank);
+            });
+            rankInfo.sort((a,b)=>{return b-a});
+            if(rankInfo.length>100)rankInfo.length = 100;
+            Laya.LocalStorage.setItem("rankInfo",JSON.stringify(rankInfo));
+            this.rankText.text = `1 - ${rankInfo[0]}\n2 - ${rankInfo[1]}\n3 - ${rankInfo[2]}`;
+        }
+        startClick(e){
+            let btn = e.currentTarget;
+            btn.visible = false;
+            Laya.stage.isStart = true;
+            Laya.stage.event("GameStart");
+            this.owner.getChildByName("title").visible = false;
+            this.scoreText.alpha =1;
+        }
+        btnAgainClick(e){
+            if(this.blackBg.alpha !== 1)return;
+            let btn = e.currentTarget;
+            Laya.stage.event("GameAgain");
+            this.score = 0;
+            this.scoreText.visible = true;
+            this.blackBg.visible = false;
+        }
+        gameOver(){
+            this.scoreText.visible = false;
+            this.blackBg.visible = true;
+            this.blackBg.alpha = 0;
+            this.endScore.text = "本局得分:"+this.score;
+            Laya.Tween.to(this.blackBg,{alpha:1},500,Laya.Ease.linearIn,new Laya.Handler(this,function(){
+            }),100,false,true);
+        }
+    }
+
     class PassColumn extends Laya.Script{
         constructor(){
             super();
         }
+        
+        
         onUpdate(){
             if(this.owner.x < -255){
                 this.owner.removeSelf();
                 Laya.Pool.recover("Column",this.owner);
-                console.log("recover");
             }
-            if(this.owner.x <= 75 && !this.owner.isPassed){
+            if(this.owner.x <= 206 && !this.owner.isPassed){
                 this.owner.isPassed = true;
-                console.log( ++gold);
+                Laya.SoundManager.playSound("audio/gold.mp3");
+                Laya.stage.event("AddScore");
             }
         }
     }
@@ -137,16 +258,17 @@
     		reg("scripts/RepeatingBg.js",RepeatingBg);
     		reg("scripts/BirdCtrl.js",BirdCtrl);
     		reg("scripts/ColumnSpawn.js",ColumnSpawn);
+    		reg("scripts/UICtrl.js",UICtrl);
     		reg("scripts/PassColumn.js",PassColumn);
         }
     }
     GameConfig.width = 1920;
     GameConfig.height = 1080;
-    GameConfig.scaleMode ="fixedwidth";
-    GameConfig.screenMode = "none";
-    GameConfig.alignV = "top";
-    GameConfig.alignH = "left";
-    GameConfig.startScene = "game.scene";
+    GameConfig.scaleMode ="showall";
+    GameConfig.screenMode = "horizontal";
+    GameConfig.alignV = "middle";
+    GameConfig.alignH = "center";
+    GameConfig.startScene = "Main.scene";
     GameConfig.sceneRoot = "";
     GameConfig.debug = false;
     GameConfig.stat = false;

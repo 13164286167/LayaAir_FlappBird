@@ -39,6 +39,7 @@ P 5FD17798 vscroll.png
 P DDDDFB9E vslider$bar.png
 P 01BAE7F5 vslider.png
 D res
+R 310328F1 black.png
 R F9A9C5D8 ColumnSprite.png
 R 81B5A95C GrassThinSprite.png
 R 7E7DA006 SkyTileSprite.png

@@ -1,5 +1,6 @@
 let timer = 0,ranTime = 0;
 let parent ;
+let children = [];
 export default class ColumnSpawn extends Laya.Script{
     constructor(){
         super();
@@ -8,13 +9,22 @@ export default class ColumnSpawn extends Laya.Script{
     }
     onAwake(){
         parent = this.owner.getChildByName("columnParent");
+        Laya.stage.on("GameAgain",this,this.gameAgain)
+    }
+    gameAgain(){
+        timer = 0;
+        ranTime = 0;
+        let childrenArr = parent._children.concat();
+        childrenArr.forEach((child,i) => {
+            child.removeSelf();
+        });
     }
     onUpdate(){
-        if(Laya.stage.isGameOver)return;
+        if(Laya.stage.isGameOver || !Laya.stage.isStart)return;
         timer+=Laya.timer.delta;
         if(timer > ranTime){
             timer = 0;
-            ranTime = this.getRandom(3000,4500)
+            ranTime = this.getRandom(2000,3500)
             this.spawn();
         }
     }
@@ -28,10 +38,10 @@ export default class ColumnSpawn extends Laya.Script{
 
         let columnY = this.getRandom(300,660)
         column.pos(1920,columnY)
-        let delta = this.getRandom(245,348);
+        let delta = this.getRandom(245,345);
         let topY = columnY - delta;
         columnTop.rotation = 180;
-        columnTop.pos(2176,topY)
+        columnTop.pos(2176,topY > 20 ? topY : 20)
         columnTop.isPassed = true;
         parent.addChild(column)
         parent.addChild(columnTop)
